@@ -237,6 +237,14 @@
   .dphead .dpadd{margin-left:auto;border:none;background:var(--primary);color:var(--primary-ink);height:32px;padding:0 12px;border-radius:9px;font-weight:600;font-size:13px}
   .dpbody{display:flex;flex-direction:column;gap:8px}
   .dpempty{color:var(--muted);font-size:13px;padding:6px 2px}
+  /* location autocomplete */
+  .acwrap{position:relative;display:block}
+  .acmenu{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:8;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-md);max-height:230px;overflow:auto}
+  .acitem{padding:9px 11px;font-size:13px;line-height:1.4;cursor:pointer;border-bottom:1px solid var(--line-2);color:var(--ink)}
+  .acitem:last-child{border-bottom:none}
+  .acitem:hover{background:var(--surface-3)}
+  .maplink{color:var(--primary);text-decoration:none;font-weight:500}
+  .maplink:hover{text-decoration:underline}
   /* signup status */
   .esign{font-size:11px;font-weight:600;margin-top:1px}
   .esign.open{color:var(--ok)}
@@ -597,7 +605,7 @@
     row('日期',a.date?esc(fmtDate(a.date)):'<span style="color:var(--muted)">待定</span>');
     if(a.start||a.end)row('時間','<span class="mono">'+esc(timeLabel(a))+'</span>');
     row('報名','<span class="signup '+(isOpen(a)?'open':'closed')+'">'+esc(signupText(a))+'</span>');
-    row('地區',esc(rlabel)); row('地點',esc(a.location)); row('人數',esc(a.headcount));
+    row('地區',esc(rlabel)); row('地點',a.location?'<a class="maplink" href="'+mapUrl(a)+'" target="_blank" rel="noopener">📍 '+esc(a.location)+' ↗</a>':''); row('人數',esc(a.headcount));
     row('費用',esc(a.cost)); row('發起',esc(a.host)); row('備註',esc(a.note).replace(/\n/g,'<br>'));
     box.appendChild(g);
     m._body.appendChild(box);
@@ -615,6 +623,19 @@
   function isOpen(a){return (a.status||'open')!=='closed';}
   function signupTarget(a){return String(a.signup||a.host||'').replace(/^@+/,'').trim();}
   function signupText(a){ if(!isOpen(a))return'🚫 已截止報名'; var c=signupTarget(a); return c?('✅ 可報名，請 @'+c):'✅ 開放報名'; }
+
+  // ---- location search (Photon / OpenStreetMap, keyless) ----
+  function photonSearch(q){ return fetch('https://photon.komoot.io/api/?q='+encodeURIComponent(q)+'&limit=6&lang=default').then(function(r){return r.ok?r.json():{features:[]};}).then(function(j){return (j&&j.features)||[];}).catch(function(){return [];}); }
+  function photonLabel(p){
+    p=p||{};
+    var main=p.name||[p.street,p.housenumber].filter(Boolean).join(' ')||'';
+    var area=[p.district,p.city||p.county,p.state].filter(Boolean);
+    var seen={}; area=area.filter(function(x){if(seen[x])return false;seen[x]=1;return true;});
+    var parts=[main].concat(area).filter(Boolean);
+    var out=[],ps={}; parts.forEach(function(x){if(!ps[x]){ps[x]=1;out.push(x);}});
+    return out.join('・')||(p.country||'');
+  }
+  function mapUrl(a){ var b='https://www.google.com/maps/search/?api=1&query='; return b+encodeURIComponent((a.lat&&a.lon)?(a.lat+','+a.lon):(a.location||'')); }
   function openAdd(){openEditor('add',[]);}
 
   function openEditor(mode,drafts){
@@ -658,7 +679,7 @@
     card.innerHTML='<button class="ecrm" title="移除">✕</button>'+
       '<div class="erow type"><label class="fld">類型<select data-f="type">'+opts+'</select></label><label class="fld">地區<select data-f="region">'+ropts+'</select></label></div>'+
       '<div class="erow one"><label class="fld"><span data-tl>'+t.tl+'</span>／名稱<input data-f="title" type="text"></label></div>'+
-      '<div class="erow"><label class="fld">日期<input data-f="date" type="date"></label><label class="fld">地點<input data-f="location" type="text" placeholder="城市或店名"></label></div>'+
+      '<div class="erow"><label class="fld">日期<input data-f="date" type="date"></label><label class="fld">地點（可搜尋）<span class="acwrap"><input data-f="location" type="text" placeholder="打字搜尋地點／店名／地址" autocomplete="off"><div class="acmenu" hidden></div></span></label></div>'+
       '<div class="erow"><label class="fld">開始<input data-f="start" type="time"></label><label class="fld">結束<input data-f="end" type="time"></label></div>'+
       '<div class="erow"><label class="fld">人數<input data-f="headcount" type="text"></label><label class="fld">費用<input data-f="cost" type="text"></label></div>'+
       '<div class="erow"><label class="fld">報名狀態<select data-f="status"><option value="open">✅ 開放報名</option><option value="closed">🚫 停止報名</option></select></label><label class="fld">發起人<input data-f="host" type="text"></label></div>'+
@@ -669,14 +690,46 @@
     card._raw=d.raw||'';
     card.querySelector('.ecrm').onclick=function(){card.remove();};
     var regSel=card.querySelector('[data-f="region"]'),locInp=card.querySelector('[data-f="location"]');
+    if(d.lat&&d.lon){locInp.dataset.lat=d.lat;locInp.dataset.lon=d.lon;}
     function repaint(){paintRegion(card,{region:regSel.value,location:locInp.value});}
-    repaint();regSel.onchange=repaint;locInp.oninput=function(){if(!regSel.value)repaint();};
+    repaint();regSel.onchange=repaint;
+    // keyless location autocomplete (Photon / OSM)
+    var menu=card.querySelector('.acmenu'),acTimer=null,acSeq=0;
+    function hideMenu(){menu.hidden=true;menu.innerHTML='';}
+    locInp.addEventListener('input',function(){
+      delete locInp.dataset.lat; delete locInp.dataset.lon; // manual edit invalidates picked pin
+      if(!regSel.value)repaint();
+      var q=locInp.value.trim(); if(q.length<2){hideMenu();return;}
+      clearTimeout(acTimer); var seq=++acSeq;
+      acTimer=setTimeout(function(){
+        photonSearch(q).then(function(feats){
+          if(seq!==acSeq)return;
+          menu.innerHTML='';
+          var n=0;
+          feats.forEach(function(f){
+            var label=photonLabel(f.properties); if(!label)return; n++;
+            var it=el('div','acitem',esc(label));
+            it.onmousedown=function(e){ e.preventDefault();
+              locInp.value=label;
+              var c=(f.geometry||{}).coordinates||[];
+              if(c.length===2){locInp.dataset.lon=c[0];locInp.dataset.lat=c[1];}
+              if(!regSel.value)repaint();
+              hideMenu();
+            };
+            menu.appendChild(it);
+          });
+          menu.hidden = n===0;
+        });
+      },280);
+    });
+    locInp.addEventListener('blur',function(){setTimeout(hideMenu,150);});
+    locInp.addEventListener('keydown',function(e){if(e.key==='Escape')hideMenu();});
     var sel=card.querySelector('[data-f="type"]');sel.onchange=function(){var tt=typeOf(sel.value);var lb=card.querySelector('[data-tl]');if(lb)lb.textContent=tt.tl;};
     return card;
   }
   function collectCards(container){
     var out=[],cards=container.querySelectorAll('.ecard');
-    Array.prototype.forEach.call(cards,function(card){var o={};Array.prototype.forEach.call(card.querySelectorAll('[data-f]'),function(inp){o[inp.getAttribute('data-f')]=inp.value.trim();});o.raw=card._raw||'';if(!o.type)o.type='other';if(!o.title)o.title=typeOf(o.type).label;if(!o.status)o.status='open';out.push(o);});
+    Array.prototype.forEach.call(cards,function(card){var o={};Array.prototype.forEach.call(card.querySelectorAll('[data-f]'),function(inp){o[inp.getAttribute('data-f')]=inp.value.trim();});o.raw=card._raw||'';if(!o.type)o.type='other';if(!o.title)o.title=typeOf(o.type).label;if(!o.status)o.status='open';var li=card.querySelector('[data-f="location"]');if(li&&li.dataset.lat&&li.dataset.lon){o.lat=parseFloat(li.dataset.lat);o.lon=parseFloat(li.dataset.lon);}out.push(o);});
     return out;
   }
 
