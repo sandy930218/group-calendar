@@ -225,10 +225,12 @@
   .cell{cursor:pointer}
   .cell.selected{border-color:var(--primary);box-shadow:inset 0 0 0 1.5px var(--primary)}
   .cell.selected.today{box-shadow:inset 0 0 0 1.5px var(--primary)}
-  .dots{display:none;flex-wrap:wrap;gap:3px;padding:2px 1px 0;align-content:flex-start}
-  .dot{width:6px;height:6px;border-radius:50%;background:hsl(var(--h) var(--bar-s) var(--bar-l))}
-  .dot[data-nr]{background:var(--muted)}
-  .dotmore{font-size:9px;color:var(--muted);line-height:1.1;margin-left:1px}
+  .dots{display:none;flex-direction:column;gap:3px;padding:3px 0 0}
+  .dot{display:flex;align-items:center;justify-content:center;border-radius:5px;padding:2px 0;font-size:13px;line-height:1.3;overflow:hidden;
+    background:hsl(var(--h) var(--chip-bg-s) var(--chip-bg-l));border:1px solid hsl(var(--h) var(--chip-bd-s) var(--chip-bd-l))}
+  .dot[data-nr]{background:var(--surface-3);border-color:var(--line)}
+  .dot .demoji{flex:none}
+  .dotmore{font-size:10.5px;color:var(--muted);font-weight:600;line-height:1.3;padding-left:2px}
   .daypanel{margin-top:14px;background:var(--surface);border:1px solid var(--line-2);border-radius:14px;padding:12px 14px}
   .dphead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
   .dphead .dpd{font-size:15px;font-weight:700}
@@ -256,7 +258,7 @@
     .chips{display:none}
     .dots{display:flex}
     .grid{gap:4px}.dow{gap:4px}
-    .cell{min-height:56px;padding:5px 4px}
+    .cell{min-height:74px;padding:5px 4px}
     .cell .dnum{font-size:12px;width:22px;height:20px}
     .erow{grid-template-columns:1fr}
     .erow.type{grid-template-columns:1fr 1fr}
@@ -503,7 +505,7 @@
       if(list.length>shown){var m=el('button','more','+'+(list.length-shown)+' 更多');(function(iso){m.onclick=function(e){e.stopPropagation();selectDay(iso);};})(iso);chips.appendChild(m);}
       cell.appendChild(chips);
       // mobile: dots
-      if(list.length){ var dots=el('div','dots'); var dn2=Math.min(list.length,5); for(var q=0;q<dn2;q++){var dt=el('span','dot'+(isOpen(list[q])?'':' closed'));paintRegion(dt,list[q]);dots.appendChild(dt);} if(list.length>dn2)dots.appendChild(el('span','dotmore','+'+(list.length-dn2))); cell.appendChild(dots); }
+      if(list.length){ var dots=el('div','dots'); var dn2=Math.min(list.length,3); for(var q=0;q<dn2;q++){var a2=list[q];var dt=el('span','dot','<span class="demoji">'+typeOf(a2.type).emoji+'</span>');paintRegion(dt,a2);dots.appendChild(dt);} if(list.length>dn2)dots.appendChild(el('span','dotmore','+'+(list.length-dn2)+' 個')); cell.appendChild(dots); }
       grid.appendChild(cell);
     }
     root.appendChild(grid);
