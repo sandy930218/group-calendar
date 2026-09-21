@@ -228,7 +228,6 @@
   .dots{display:none;flex-wrap:wrap;gap:3px;padding:2px 1px 0;align-content:flex-start}
   .dot{width:6px;height:6px;border-radius:50%;background:hsl(var(--h) var(--bar-s) var(--bar-l))}
   .dot[data-nr]{background:var(--muted)}
-  .dot.closed{opacity:.35}
   .dotmore{font-size:9px;color:var(--muted);line-height:1.1;margin-left:1px}
   .daypanel{margin-top:14px;background:var(--surface);border:1px solid var(--line-2);border-radius:14px;padding:12px 14px}
   .dphead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
@@ -242,10 +241,8 @@
   .esign.closed{color:var(--muted)}
   .signup.open{color:var(--ok);font-weight:600}
   .signup.closed{color:var(--muted);font-weight:600}
-  .ecardlink.closed{opacity:.72}
-  .ecardlink.closed .en{text-decoration:line-through}
-  .chip.closed{opacity:.62}
-  .chip.closed .cn{text-decoration:line-through}
+  /* 停止報名的活動維持完整清晰顯示，僅以「已截止」標籤標示，不加刪除線或淡化 */
+  .esign.closed{color:var(--danger)}
 
   @media (max-width:720px){
     .brand .sub{display:none}
