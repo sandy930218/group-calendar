@@ -16,7 +16,24 @@
       "id": "a_muar6u3cj5kc",
       "status": "open",
       "signup": ""
+    },
+    {
+      "type": "trip",
+      "region": "north",
+      "title": "六福村",
+      "date": "2026-11-15",
+      "location": "",
+      "start": "",
+      "end": "",
+      "headcount": "",
+      "cost": "",
+      "status": "open",
+      "host": "",
+      "signup": "朵朵",
+      "note": "日起確定但時間未定，等日期接近會開討論串討論",
+      "raw": "11/15 六福村",
+      "id": "a_muaw9hbq8e2e"
     }
   ],
-  "updatedAt": "2026-09-21T06:57:29.196Z"
+  "updatedAt": "2026-09-21T06:58:52.620Z"
 }
