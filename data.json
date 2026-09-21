@@ -22,7 +22,7 @@
       "region": "north",
       "title": "六福村-墓碑鎮活動",
       "date": "2026-11-15",
-      "location": "",
+      "location": "六福村・拱子溝・新竹縣・台灣省",
       "start": "",
       "end": "",
       "headcount": "已有4人",
@@ -32,7 +32,9 @@
       "signup": "朵朵",
       "note": "日起確定但時間未定，等日期接近會開討論串討論",
       "raw": "11/15 六福村",
-      "id": "a_muaw9hbq8e2e"
+      "id": "a_muaw9hbq8e2e",
+      "lat": 24.8217621,
+      "lon": 121.1847692
     },
     {
       "type": "sport",
@@ -69,5 +71,5 @@
       "id": "a_muaxlepwthjn"
     }
   ],
-  "updatedAt": "2026-09-21T07:36:08.570Z"
+  "updatedAt": "2026-09-21T08:37:04.904Z"
 }
