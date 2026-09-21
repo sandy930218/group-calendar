@@ -625,7 +625,8 @@
   function signupText(a){ if(!isOpen(a))return'🚫 已截止報名'; var c=signupTarget(a); return c?('✅ 可報名，請 @'+c):'✅ 開放報名'; }
 
   // ---- location search (Photon / OpenStreetMap, keyless) ----
-  function photonSearch(q){ return fetch('https://photon.komoot.io/api/?q='+encodeURIComponent(q)+'&limit=6&lang=default').then(function(r){return r.ok?r.json():{features:[]};}).then(function(j){return (j&&j.features)||[];}).catch(function(){return [];}); }
+  function isTaiwan(p){ var c=(p&&p.country)||''; return /臺灣|台灣|Taiwan/i.test(c); }
+  function photonSearch(q){ return fetch('https://photon.komoot.io/api/?q='+encodeURIComponent(q)+'&limit=8&lang=default&lat=23.7&lon=121&bbox=119.3,21.7,122.1,25.4').then(function(r){return r.ok?r.json():{features:[]};}).then(function(j){return ((j&&j.features)||[]).filter(function(f){return isTaiwan(f.properties);});}).catch(function(){return [];}); }
   function photonLabel(p){
     p=p||{};
     var main=p.name||[p.street,p.housenumber].filter(Boolean).join(' ')||'';
