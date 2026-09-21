@@ -221,6 +221,32 @@
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .clearex{margin-left:auto;font-size:12px;color:var(--muted);border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:3px 11px;font-weight:500}
 
+  /* selected day + day panel (Google-Calendar style) */
+  .cell{cursor:pointer}
+  .cell.selected{border-color:var(--primary);box-shadow:inset 0 0 0 1.5px var(--primary)}
+  .cell.selected.today{box-shadow:inset 0 0 0 1.5px var(--primary)}
+  .dots{display:none;flex-wrap:wrap;gap:3px;padding:2px 1px 0;align-content:flex-start}
+  .dot{width:6px;height:6px;border-radius:50%;background:hsl(var(--h) var(--bar-s) var(--bar-l))}
+  .dot[data-nr]{background:var(--muted)}
+  .dot.closed{opacity:.35}
+  .dotmore{font-size:9px;color:var(--muted);line-height:1.1;margin-left:1px}
+  .daypanel{margin-top:14px;background:var(--surface);border:1px solid var(--line-2);border-radius:14px;padding:12px 14px}
+  .dphead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .dphead .dpd{font-size:15px;font-weight:700}
+  .dphead .dpadd{margin-left:auto;border:none;background:var(--primary);color:var(--primary-ink);height:32px;padding:0 12px;border-radius:9px;font-weight:600;font-size:13px}
+  .dpbody{display:flex;flex-direction:column;gap:8px}
+  .dpempty{color:var(--muted);font-size:13px;padding:6px 2px}
+  /* signup status */
+  .esign{font-size:11px;font-weight:600;margin-top:1px}
+  .esign.open{color:var(--ok)}
+  .esign.closed{color:var(--muted)}
+  .signup.open{color:var(--ok);font-weight:600}
+  .signup.closed{color:var(--muted);font-weight:600}
+  .ecardlink.closed{opacity:.72}
+  .ecardlink.closed .en{text-decoration:line-through}
+  .chip.closed{opacity:.62}
+  .chip.closed .cn{text-decoration:line-through}
+
   @media (max-width:720px){
     .brand .sub{display:none}
     .cell{min-height:78px}
@@ -228,11 +254,15 @@
     .wcol{min-height:0}
     .period h2{font-size:20px}
   }
-  @media (max-width:460px){
+  @media (max-width:560px){
+    /* month becomes dot-based like Google Calendar; tap a day to read it below */
+    .chips{display:none}
+    .dots{display:flex}
     .grid{gap:4px}.dow{gap:4px}
-    .cell{min-height:70px;padding:4px}
-    .chip{padding:2px 4px;font-size:11px}.chip .ct{display:none}
+    .cell{min-height:56px;padding:5px 4px}
+    .cell .dnum{font-size:12px;width:22px;height:20px}
     .erow{grid-template-columns:1fr}
+    .erow.type{grid-template-columns:1fr 1fr}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -336,7 +366,7 @@
   function el(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
 
   /* ============ state ============ */
-  var state={activities:[],view:'month',cursor:new Date()};
+  var state={activities:[],view:'month',cursor:new Date(),selDate:todayISO()};
   state.cursor.setHours(0,0,0,0);
   var cfg=loadCfg();
   var token=loadToken(cfg);
@@ -465,17 +495,36 @@
       var cell=el('div','cell'+(d.getMonth()!==mon?' out':'')+(iso===tISO?' today':''));
       var isWe=d.getDay()===0||d.getDay()===6;
       var dn=el('button','dnum'+(isWe?' we':''),String(d.getDate()));
-      (function(iso){dn.onclick=function(){openDay(iso);};})(iso);
+      (function(iso){dn.onclick=function(e){e.stopPropagation();selectDay(iso);};})(iso);
       cell.appendChild(dn);
-      var list=actsOn(iso),chips=el('div','chips'),shown=Math.min(list.length,3);
+      if(iso===state.selDate)cell.classList.add('selected');
+      (function(iso){cell.onclick=function(){selectDay(iso);};})(iso);
+      var list=actsOn(iso);
+      // desktop: text chips
+      var chips=el('div','chips'),shown=Math.min(list.length,3);
       for(var k=0;k<shown;k++)chips.appendChild(monthChip(list[k]));
+      if(list.length>shown){var m=el('button','more','+'+(list.length-shown)+' 更多');(function(iso){m.onclick=function(e){e.stopPropagation();selectDay(iso);};})(iso);chips.appendChild(m);}
       cell.appendChild(chips);
-      if(list.length>shown){var m=el('button','more','+'+(list.length-shown)+' 更多');(function(iso){m.onclick=function(){openDay(iso);};})(iso);cell.appendChild(m);}
+      // mobile: dots
+      if(list.length){ var dots=el('div','dots'); var dn2=Math.min(list.length,5); for(var q=0;q<dn2;q++){var dt=el('span','dot'+(isOpen(list[q])?'':' closed'));paintRegion(dt,list[q]);dots.appendChild(dt);} if(list.length>dn2)dots.appendChild(el('span','dotmore','+'+(list.length-dn2))); cell.appendChild(dots); }
       grid.appendChild(cell);
     }
     root.appendChild(grid);
+    root.appendChild(renderDayPanel(state.selDate));
   }
-  function monthChip(a){ var t=typeOf(a.type); var c=el('button','chip',(a.start?'<span class="ct mono">'+esc(a.start)+'</span>':'')+'<span class="cn">'+t.emoji+' '+esc(a.title||t.label)+'</span>'); paintRegion(c,a); c.onclick=function(){openDetail(a.id);}; c.title=t.label+'・'+(a.title||''); return c; }
+  function selectDay(iso){ state.selDate=iso; render(); }
+  function renderDayPanel(iso){
+    var panel=el('div','daypanel');
+    var head=el('div','dphead');
+    head.innerHTML='<span class="dpd">'+esc(fmtDate(iso)||'—')+'</span>';
+    if(canWrite){var add=el('button','dpadd','＋ 新增');add.onclick=function(){openEditor('add-day',[blank(iso)]);};head.appendChild(add);}
+    panel.appendChild(head);
+    var list=actsOn(iso);
+    if(list.length===0){ panel.appendChild(el('div','dpempty','這天沒有活動'+(canWrite?'，點「＋ 新增」加一個':'')+'。')); }
+    else { var body=el('div','dpbody'); list.forEach(function(a){body.appendChild(weekCard(a));}); panel.appendChild(body); }
+    return panel;
+  }
+  function monthChip(a){ var t=typeOf(a.type); var c=el('button','chip'+(isOpen(a)?'':' closed'),(a.start?'<span class="ct mono">'+esc(a.start)+'</span>':'')+'<span class="cn">'+t.emoji+' '+esc(a.title||t.label)+'</span>'); paintRegion(c,a); c.onclick=function(e){e.stopPropagation();openDetail(a.id);}; c.title=t.label+'・'+(a.title||''); return c; }
 
   function renderWeek(root){
     var wk=el('div','week'),s=startOfWeek(state.cursor),tISO=todayISO();
@@ -491,8 +540,10 @@
     }
     root.appendChild(wk);
   }
-  function weekCard(a){ var t=typeOf(a.type),b=el('button','ecardlink'); paintRegion(b,a);
-    b.innerHTML='<span class="et">'+t.emoji+' '+esc(t.label)+(a.start?' · <span class="mono">'+esc(timeLabel(a))+'</span>':'')+'</span><span class="en">'+esc(a.title||t.label)+'</span>'+(a.location?'<span class="el">📍 '+esc(a.location)+'</span>':'');
+  function weekCard(a){ var t=typeOf(a.type),op=isOpen(a),b=el('button','ecardlink'+(op?'':' closed')); paintRegion(b,a);
+    var sc=signupTarget(a);
+    var sign = op ? (sc?'<span class="esign open">報名 @'+esc(sc)+'</span>':'<span class="esign open">開放報名</span>') : '<span class="esign closed">已截止</span>';
+    b.innerHTML='<span class="et">'+t.emoji+' '+esc(t.label)+(a.start?' · <span class="mono">'+esc(timeLabel(a))+'</span>':'')+'</span><span class="en">'+esc(a.title||t.label)+'</span>'+(a.location?'<span class="el">📍 '+esc(a.location)+'</span>':'')+sign;
     b.onclick=function(){openDetail(a.id);}; return b; }
 
   function renderTray(){
@@ -546,13 +597,14 @@
     var g=el('div','dgrid'); function row(k,v){if(!v)return;g.appendChild(el('div','drow','<span class="k">'+k+'</span><span class="v">'+v+'</span>'));}
     row('日期',a.date?esc(fmtDate(a.date)):'<span style="color:var(--muted)">待定</span>');
     if(a.start||a.end)row('時間','<span class="mono">'+esc(timeLabel(a))+'</span>');
+    row('報名','<span class="signup '+(isOpen(a)?'open':'closed')+'">'+esc(signupText(a))+'</span>');
     row('地區',esc(rlabel)); row('地點',esc(a.location)); row('人數',esc(a.headcount));
     row('費用',esc(a.cost)); row('發起',esc(a.host)); row('備註',esc(a.note).replace(/\n/g,'<br>'));
     box.appendChild(g);
-    if(a.raw)box.appendChild(el('div','draw','<span class="rl">原始訊息</span>'+esc(a.raw)));
     m._body.appendChild(box);
     if(canWrite){
       var del=el('button','btn ghostdanger','刪除');del.onclick=function(){if(confirm('確定刪除這個活動？')){state.activities=state.activities.filter(function(x){return x.id!==id;});persist('已刪除');}};m._foot.appendChild(del);
+      var tgl=el('button','btn',isOpen(a)?'停止報名':'重新開放');tgl.onclick=function(){var ns=isOpen(a)?'closed':'open';state.activities=state.activities.map(function(x){return x.id===id?Object.assign({},x,{status:ns}):x;});persist(ns==='closed'?'已停止報名':'已重新開放');};m._foot.appendChild(tgl);
       var edit=el('button','btn','編輯');edit.onclick=function(){openEditor('edit',[Object.assign({},a)]);};m._foot.appendChild(edit);
     }
     var close=el('button','btn'+(canWrite?'':' primary'),'關閉');close.onclick=closeModal;m._foot.appendChild(close);
@@ -560,7 +612,10 @@
   }
 
   /* ============ editor / compose ============ */
-  function blank(iso){return{id:null,type:'other',region:'',title:'',date:iso||'',start:'',end:'',location:'',headcount:'',cost:'',host:'',note:'',raw:''};}
+  function blank(iso){return{id:null,type:'other',region:'',title:'',date:iso||'',start:'',end:'',location:'',headcount:'',cost:'',host:'',note:'',raw:'',status:'open',signup:''};}
+  function isOpen(a){return (a.status||'open')!=='closed';}
+  function signupTarget(a){return String(a.signup||a.host||'').replace(/^@+/,'').trim();}
+  function signupText(a){ if(!isOpen(a))return'🚫 已截止報名'; var c=signupTarget(a); return c?('✅ 可報名，請 @'+c):'✅ 開放報名'; }
   function openAdd(){openEditor('add',[]);}
 
   function openEditor(mode,drafts){
@@ -607,9 +662,11 @@
       '<div class="erow"><label class="fld">日期<input data-f="date" type="date"></label><label class="fld">地點<input data-f="location" type="text" placeholder="城市或店名"></label></div>'+
       '<div class="erow"><label class="fld">開始<input data-f="start" type="time"></label><label class="fld">結束<input data-f="end" type="time"></label></div>'+
       '<div class="erow"><label class="fld">人數<input data-f="headcount" type="text"></label><label class="fld">費用<input data-f="cost" type="text"></label></div>'+
-      '<div class="erow"><label class="fld">發起人<input data-f="host" type="text"></label><label class="fld">　</label></div>'+
+      '<div class="erow"><label class="fld">報名狀態<select data-f="status"><option value="open">✅ 開放報名</option><option value="closed">🚫 停止報名</option></select></label><label class="fld">發起人<input data-f="host" type="text"></label></div>'+
+      '<div class="erow one"><label class="fld">報名找誰（@，預設同發起人）<input data-f="signup" type="text" placeholder="留空＝自動用發起人"></label></div>'+
       '<div class="erow one"><label class="fld">備註<textarea data-f="note" style="min-height:56px"></textarea></label></div>';
-    ['type','region','title','date','location','start','end','headcount','cost','host','note'].forEach(function(f){var inp=card.querySelector('[data-f="'+f+'"]');if(inp)inp.value=d[f]||'';});
+    ['type','region','title','date','location','start','end','headcount','cost','host','note','status','signup'].forEach(function(f){var inp=card.querySelector('[data-f="'+f+'"]');if(inp)inp.value=d[f]||'';});
+    var stSel=card.querySelector('[data-f="status"]');if(stSel&&!d.status)stSel.value='open';
     card._raw=d.raw||'';
     card.querySelector('.ecrm').onclick=function(){card.remove();};
     var regSel=card.querySelector('[data-f="region"]'),locInp=card.querySelector('[data-f="location"]');
@@ -620,7 +677,7 @@
   }
   function collectCards(container){
     var out=[],cards=container.querySelectorAll('.ecard');
-    Array.prototype.forEach.call(cards,function(card){var o={};Array.prototype.forEach.call(card.querySelectorAll('[data-f]'),function(inp){o[inp.getAttribute('data-f')]=inp.value.trim();});o.raw=card._raw||'';if(!o.type)o.type='other';if(!o.title)o.title=typeOf(o.type).label;out.push(o);});
+    Array.prototype.forEach.call(cards,function(card){var o={};Array.prototype.forEach.call(card.querySelectorAll('[data-f]'),function(inp){o[inp.getAttribute('data-f')]=inp.value.trim();});o.raw=card._raw||'';if(!o.type)o.type='other';if(!o.title)o.title=typeOf(o.type).label;if(!o.status)o.status='open';out.push(o);});
     return out;
   }
 
@@ -787,8 +844,8 @@
   function syncSeg(){byId('segMonth').setAttribute('aria-pressed',state.view==='month');byId('segWeek').setAttribute('aria-pressed',state.view==='week');}
   byId('prev').onclick=function(){shift(-1);};
   byId('next').onclick=function(){shift(1);};
-  function shift(n){if(state.view==='month'){state.cursor=new Date(state.cursor.getFullYear(),state.cursor.getMonth()+n,1);}else{state.cursor=addDays(state.cursor,n*7);}render();}
-  byId('todayBtn').onclick=function(){state.cursor=new Date();state.cursor.setHours(0,0,0,0);render();};
+  function shift(n){if(state.view==='month'){state.cursor=new Date(state.cursor.getFullYear(),state.cursor.getMonth()+n,1);var t=new Date();if(t.getFullYear()===state.cursor.getFullYear()&&t.getMonth()===state.cursor.getMonth())state.selDate=todayISO();else state.selDate=toISO(state.cursor);}else{state.cursor=addDays(state.cursor,n*7);}render();}
+  byId('todayBtn').onclick=function(){state.cursor=new Date();state.cursor.setHours(0,0,0,0);state.selDate=todayISO();render();};
   byId('addBtn').onclick=openAdd;
   byId('shareBtn').onclick=openShare;
   byId('adminBtn').onclick=openAdmin;
