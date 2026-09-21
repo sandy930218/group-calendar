@@ -50,7 +50,24 @@
       "note": "",
       "raw": "預約時段｜10/25 (日) 14:00\n預約人數｜6位\n遊玩時間｜2小時",
       "id": "a_muawc2nku55d"
+    },
+    {
+      "type": "script",
+      "region": "north",
+      "title": "劇本殺",
+      "date": "2026-09-06",
+      "location": "",
+      "start": "",
+      "end": "",
+      "headcount": "",
+      "cost": "",
+      "status": "open",
+      "host": "",
+      "signup": "",
+      "note": "",
+      "raw": "9/6劇本殺",
+      "id": "a_muaxlepwthjn"
     }
   ],
-  "updatedAt": "2026-09-21T07:00:53.581Z"
+  "updatedAt": "2026-09-21T07:36:08.570Z"
 }
