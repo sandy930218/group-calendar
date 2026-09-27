@@ -69,7 +69,24 @@
       "note": "",
       "raw": "9/6劇本殺",
       "id": "a_muaxlepwthjn"
+    },
+    {
+      "type": "dining",
+      "region": "north",
+      "title": "鳥貴族-中山店",
+      "date": "2026-10-29",
+      "location": "鳥貴族—中山店",
+      "start": "19:00",
+      "end": "",
+      "headcount": "已有3人",
+      "cost": "",
+      "status": "open",
+      "host": "",
+      "signup": "朵朵",
+      "note": "",
+      "raw": "10/29  19:00 聚餐 地點 鳥貴族中山店",
+      "id": "a_muk30mt06jxd"
     }
   ],
-  "updatedAt": "2026-09-21T08:37:04.904Z"
+  "updatedAt": "2026-09-27T17:17:53.071Z"
 }
