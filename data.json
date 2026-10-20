@@ -86,7 +86,26 @@
       "note": "",
       "raw": "10/29  19:00 聚餐 地點 鳥貴族中山店",
       "id": "a_muk30mt06jxd"
+    },
+    {
+      "type": "trip",
+      "region": "north",
+      "title": "動物園",
+      "date": "2026-11-22",
+      "location": "臺北市立動物園・文山區・臺北市",
+      "start": "11:00",
+      "end": "",
+      "headcount": "已有2人",
+      "cost": "",
+      "status": "open",
+      "host": "",
+      "signup": "朵朵",
+      "note": "",
+      "raw": "",
+      "lat": 24.9953546,
+      "lon": 121.5861491,
+      "id": "a_mvgezyr2u3p9"
     }
   ],
-  "updatedAt": "2026-10-12T04:49:21.357Z"
+  "updatedAt": "2026-10-20T08:21:54.600Z"
 }
